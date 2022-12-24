@@ -6,7 +6,8 @@
   };
 
   outputs = { self, nixpkgs }: 
-  let pkgs = import nixpkgs { system = "x86_64-linux"; };
+  let system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
       version = "3.40.00";
       year = "2022";
       serialisedVersion = versionToSerialisedVersion version;
@@ -29,17 +30,14 @@
         sha256 = "1bcdy1179r46bpvyfy9plhjfy2nr9zdd1mcp6n8n62cj3vvidp0s";
       };
       sqliteDocDir = "sqlite-doc-${serialisedVersion}";
-
-      # 
-      sqliteDocHelp
       
   in rec {
     packages.x86_64-linux.default = pkgs.stdenv.mkDerivation {
         pname = "sqlite3";
         inherit version;
 
-        srcs = [ fetchSqliteAutoconf fetchSqliteDoc ];
-        sourceRoot = "./.";
+        srcs = [ fetchSqliteAutoconf ];
+        sourceRoot = "./${sqliteSrcDir}";
 
         outputs = [ "out" ];
 
@@ -47,6 +45,33 @@
             [ 
                 # `readline` makes the CLI interface usable
                 pkgs.readline 
+            ];
+
+        configureFlags = 
+            [
+                # Some awkwardness to refer to the environment variable `$out`.
+                # See [here](https://nixos.org/manual/nix/stable/release-notes/rl-2.0.html)
+                "--prefix=${builtins.placeholder "out"}" 
+                "--enable-readline"
+                "--enable-threadsafe"
+                "--enable-math"
+                "--enable-fts4"
+                "--enable-fts5"
+            ];
+    };
+
+    # HTML sqlite documentation
+    packages.x86_64-linux.sqlite-doc = pkgs.stdenv.mkDerivation {
+        pname = "sqlite3-doc";
+        inherit version;
+
+        srcs = [ fetchSqliteDoc ];
+        sourceRoot = "${sqliteDocDir}";
+
+        outputs = [ "out" ];
+
+        nativeBuildInputs = 
+            [ 
                 # `unzip` is needed for grabbing the HTML docs
                 pkgs.unzip 
             ];
@@ -59,62 +84,48 @@
         # Debugging notes:
         #   - Enter `nix develop`
         #   - Run `genericBuild`
-        unpackPhase = ''
-            runHook preUnpack
-
-            tar -xvf ${fetchSqliteAutoconf}
-            unzip ${fetchSqliteDoc}
-
-            runHook postUnpack
-        '';
-
-        configurePhase = ''
-            runHook preConfigure
-
-            pushd ${sqliteSrcDir}
-            ./configure             \
-                --prefix=$out       \
-                --enable-readline   \
-                --enable-threadsafe \
-                --enable-math       \
-                --enable-fts4       \
-                --enable-fts5
-            popd
-
-            runHook postConfigure
-        '';
-
-        buildPhase = ''
-            runHook preBuild
-
-            pushd ${sqliteSrcDir}
-            make
-            popd
-
-            runHook postBuild
-        '';
-
         installPhase = ''
+            set -e
             runHook preInstall
 
-            # Install sqlite
-            echo "Installing sqlite..."
-            pushd ${sqliteSrcDir}
-            make install
-            popd
-
-            # Install the doc
-            echo "Installing sqlite documentation..."
-            pushd ${sqliteDocDir}
-            cp -r . "$out/share/doc"
-            popd
-
-            # TODO add easy way to open up help documentation.
+            mkdir -p $out/share/doc
+            cp -r .  $out/share/doc
+            
+            # Check if `index.html` exists
+            file "$out/share/doc/index.html"
 
             runHook postInstall
         '';
     };
 
-    devShells.x86_64-linux.default = packages.x86_64-linux.default;
+    # Convienent shell function to open documentation similar to `nixos-help`
+    packages.x86_64-linux.sqlite-help = pkgs.writeShellScriptBin "sqlite-help" ''
+      # Finds first executable browser in a colon-separated list.
+      # (see how xdg-open defines BROWSER)
+      browser="$(
+        IFS=: ; for b in $BROWSER; do
+          [ -n "$(type -P "$b" || true)" ] && echo "$b" && break
+        done
+      )"
+      if [ -z "$browser" ]; then
+        browser="$(type -P xdg-open || true)"
+        if [ -z "$browser" ]; then
+          browser="${pkgs.w3m-nographics}/bin/w3m"
+        fi
+      fi
+      exec "$browser" "${packages.x86_64-linux.sqlite-doc + "/share/doc/index.html"}"
+    '';
+
+    # Amalmagates the above derivations. For details on `symlinkJoin`, see
+    # [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/trivial-builders.nix)
+    devShells.x86_64-linux.default = pkgs.symlinkJoin {
+        name = "sqlite-dev-shell";
+        paths = 
+            [ 
+                packages.x86_64-linux.default
+                packages.x86_64-linux.sqlite-doc
+                packages.x86_64-linux.sqlite-help
+            ];
+    };
   };
 }
