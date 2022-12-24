@@ -23,13 +23,13 @@
         url = "https://www.sqlite.org/${year}/sqlite-autoconf-${serialisedVersion}.tar.gz";
         sha256 = "1rw0i63822pdkb3a16sqj4jdcp5zg0ffjmi26mshqw6jfqh5acq3";
       };
-      sqliteSrcDir = "sqlite-autoconf-${serialisedVersion}";
+      sqlite3SrcDir = "sqlite-autoconf-${serialisedVersion}";
       # Grab the documentation / its corresponding directory
       fetchSqliteDoc = builtins.fetchurl {
         url = "https://www.sqlite.org/${year}/sqlite-doc-${serialisedVersion}.zip";
         sha256 = "1bcdy1179r46bpvyfy9plhjfy2nr9zdd1mcp6n8n62cj3vvidp0s";
       };
-      sqliteDocDir = "sqlite-doc-${serialisedVersion}";
+      sqlite3DocDir = "sqlite-doc-${serialisedVersion}";
       
   in rec {
     packages.${system} = {
@@ -61,13 +61,13 @@
                 ];
         };
 
-        # HTML sqlite documentation
-        sqlite-doc = pkgs.stdenv.mkDerivation {
+        # HTML sqlite3 documentation
+        sqlite3-doc = pkgs.stdenv.mkDerivation {
             pname = "sqlite3-doc";
             inherit version;
 
             srcs = [ fetchSqliteDoc ];
-            sourceRoot = "${sqliteDocDir}";
+            sourceRoot = "${sqlite3DocDir}";
 
             outputs = [ "out" ];
 
@@ -100,7 +100,7 @@
         };
 
         # Convienent shell function to open documentation similar to `nixos-help`
-        sqlite-help = pkgs.writeShellScriptBin "sqlite-help" ''
+        sqlite3-help = pkgs.writeShellScriptBin "sqlite3-help" ''
           # Finds first executable browser in a colon-separated list.
           # (see how xdg-open defines BROWSER)
           browser="$(
@@ -114,22 +114,22 @@
               browser="${pkgs.w3m-nographics}/bin/w3m"
             fi
           fi
-          exec "$browser" "${packages."${system}".sqlite-doc + "/share/doc/index.html"}"
+          exec "$browser" "${packages."${system}".sqlite3-doc + "/share/doc/index.html"}"
         '';
     };
 
 
-    # Amalmagates the above derivations. For details on `symlinkJoin`, see
-    # [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/trivial-builders.nix)
+    # Amalmagates the above derivations. For details on `mkShell`, see
+    # [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/mkshell/default.nix)
     devShells.${system} = {
-        default = pkgs.symlinkJoin {
-        name = "sqlite-dev-shell";
-        paths = 
-            [ 
-                packages.${system}.default
-                packages.${system}.sqlite-doc
-                packages.${system}.sqlite-help
-            ];
+        default = pkgs.mkShell {
+            name = "sqlite3-dev-shell";
+            packages = 
+                [ 
+                    packages.${system}.default
+                    packages.${system}.sqlite3-doc
+                    packages.${system}.sqlite3-help
+                ];
         };
     };
   };
