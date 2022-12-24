@@ -29,6 +29,9 @@
         sha256 = "1bcdy1179r46bpvyfy9plhjfy2nr9zdd1mcp6n8n62cj3vvidp0s";
       };
       sqliteDocDir = "sqlite-doc-${serialisedVersion}";
+
+      # 
+      sqliteDocHelp
       
   in rec {
     packages.x86_64-linux.default = pkgs.stdenv.mkDerivation {
@@ -38,7 +41,7 @@
         srcs = [ fetchSqliteAutoconf fetchSqliteDoc ];
         sourceRoot = "./.";
 
-        outputs = [ "out" "dev" "man" "doc" ];
+        outputs = [ "out" ];
 
         nativeBuildInputs = 
             [ 
@@ -69,7 +72,13 @@
             runHook preConfigure
 
             pushd ${sqliteSrcDir}
-            ./configure $configureFlags
+            ./configure             \
+                --prefix=$out       \
+                --enable-readline   \
+                --enable-threadsafe \
+                --enable-math       \
+                --enable-fts4       \
+                --enable-fts5
             popd
 
             runHook postConfigure
@@ -91,16 +100,16 @@
             # Install sqlite
             echo "Installing sqlite..."
             pushd ${sqliteSrcDir}
-            mkdir -p "$out"
             make install
             popd
 
             # Install the doc
             echo "Installing sqlite documentation..."
             pushd ${sqliteDocDir}
-            mkdir -p "$doc"
-            cp -r . "$doc"
+            cp -r . "$out/share/doc"
             popd
+
+            # TODO add easy way to open up help documentation.
 
             runHook postInstall
         '';
