@@ -19,26 +19,25 @@
 
       # See `https://www.sqlite.org/download.html` for downloads.
       # Grab the source code / its corresponding directory
-      fetchSqliteAutoconf = builtins.fetchurl {
+      fetchSqlite3Autoconf = builtins.fetchurl {
         url = "https://www.sqlite.org/${year}/sqlite-autoconf-${serialisedVersion}.tar.gz";
         sha256 = "1rw0i63822pdkb3a16sqj4jdcp5zg0ffjmi26mshqw6jfqh5acq3";
       };
       sqlite3SrcDir = "sqlite-autoconf-${serialisedVersion}";
       # Grab the documentation / its corresponding directory
-      fetchSqliteDoc = builtins.fetchurl {
+      fetchSqlite3Doc = builtins.fetchurl {
         url = "https://www.sqlite.org/${year}/sqlite-doc-${serialisedVersion}.zip";
         sha256 = "1bcdy1179r46bpvyfy9plhjfy2nr9zdd1mcp6n8n62cj3vvidp0s";
       };
       sqlite3DocDir = "sqlite-doc-${serialisedVersion}";
-      
   in rec {
     packages.${system} = {
         default = pkgs.stdenv.mkDerivation {
             pname = "sqlite3";
             inherit version;
 
-            srcs = [ fetchSqliteAutoconf ];
-            sourceRoot = "./${sqliteSrcDir}";
+            srcs = [ fetchSqlite3Autoconf ];
+            sourceRoot = "${sqlite3SrcDir}";
 
             outputs = [ "out" ];
 
@@ -66,7 +65,7 @@
             pname = "sqlite3-doc";
             inherit version;
 
-            srcs = [ fetchSqliteDoc ];
+            srcs = [ fetchSqlite3Doc ];
             sourceRoot = "${sqlite3DocDir}";
 
             outputs = [ "out" ];
