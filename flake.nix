@@ -115,13 +115,10 @@
           fi
           exec "$browser" "${packages."${system}".sqlite3-doc + "/share/doc/index.html"}"
         '';
-    };
 
-
-    # Amalmagates the above derivations. For details on `mkShell`, see
-    # [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/mkshell/default.nix)
-    devShells.${system} = {
-        default = pkgs.mkShell {
+        # Convenient derivation to amalmagate the above derivations into a
+        # single derivation.
+        sqlite3-all = pkgs.mkShell {
             name = "sqlite3-dev-shell";
             packages = 
                 [ 
@@ -130,6 +127,13 @@
                     packages.${system}.sqlite3-help
                 ];
         };
+    };
+
+
+    # Amalmagates the above derivations. For details on `mkShell`, see
+    # [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/mkshell/default.nix)
+    devShells.${system} = {
+        default = packages.${system}.sqlite3-all;
     };
   };
 }
