@@ -32,8 +32,9 @@
       sqlite3DocDir = "sqlite-doc-${serialisedVersion}";
   in rec {
     packages.${system} = {
-        default = pkgs.stdenv.mkDerivation {
-            pname = "sqlite3";
+        # sqlite3 autoconf
+        sqlite3-bin = pkgs.stdenv.mkDerivation {
+            pname = "sqlite3-bin";
             inherit version;
 
             srcs = [ fetchSqlite3Autoconf ];
@@ -118,22 +119,24 @@
 
         # Convenient derivation to amalmagate the above derivations into a
         # single derivation.
-        sqlite3-all = pkgs.mkShell {
-            name = "sqlite3-all";
-            packages = 
+        default = pkgs.symlinkJoin {
+            name = "sqlite3";
+            paths = 
                 [ 
-                    packages.${system}.default
+                    packages.${system}.sqlite3-bin
                     packages.${system}.sqlite3-doc
                     packages.${system}.sqlite3-help
                 ];
         };
     };
 
-
     # Amalmagates the above derivations. For details on `mkShell`, see
     # [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/mkshell/default.nix)
     devShells.${system} = {
-        default = packages.${system}.sqlite3-all;
+        default = pkgs.mkShell {
+            name = "sqlite3";
+            packages = [ packages.${system}.default ];
+        };
     };
   };
 }
