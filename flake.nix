@@ -119,7 +119,7 @@
         # Convenient derivation to amalmagate the above derivations into a
         # single derivation.
         sqlite3-all = pkgs.mkShell {
-            name = "sqlite3-dev-shell";
+            name = "sqlite3-all";
             packages = 
                 [ 
                     packages.${system}.default
